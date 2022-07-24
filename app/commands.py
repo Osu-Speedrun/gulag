@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import importlib
+import json
 import math
 import os
 import pprint
@@ -45,6 +46,8 @@ import app.utils
 from app.constants import regexes
 from app.constants.gamemodes import GameMode
 from app.constants.gamemodes import GAMEMODE_REPR_LIST
+from app.constants.gamemodes import GULAG_2_INT_DEFAULT
+from app.constants.gamemodes import GULAG_2_STR_DEFUALT
 from app.constants.mods import Mods
 from app.constants.mods import SPEED_CHANGING_MODS
 from app.constants.privileges import ClanPrivileges
@@ -75,7 +78,7 @@ if TYPE_CHECKING:
 
 
 BEATMAPS_PATH = Path.cwd() / ".data/osu"
-
+REPLAYS_PATH = Path.cwd() / ".data/osr"
 
 @dataclass
 class Context:
@@ -625,7 +628,7 @@ async def get_apikey(ctx: Context) -> Optional[str]:
 
 @command(Privileges.NORMAL)
 async def _wipe(ctx: Context) -> Optional[str]:
-    """Wipe player profile."""
+    """Wipe your profile and start over."""
     p = ctx.player
     if ctx.recipient is not app.state.sessions.bot:
         return f"Command only available in DMs with {app.state.sessions.bot.name}."
@@ -678,10 +681,67 @@ async def _wipe(ctx: Context) -> Optional[str]:
             p.id,
         )
 
-    # Kick player
-    await p.kick()
+    # Kick player to refresh their app.state
+    p.logout()
+
+    # All done
     return "Profile wiped."
 
+@command(Privileges.NORMAL)
+async def _banchorank(ctx: Context) -> Optional[str]:
+    """Curious what your bancho rank would be?."""
+
+    # Make 1 optional argument
+    if len(ctx.args) < 1:
+        return "Invalid syntax: !banchorank <mode>"
+
+    if ctx.args[0] not in GAMEMODE_REPR_LIST:
+        return f'Valid gamemodes: {", ".join(GAMEMODE_REPR_LIST)}.'
+    elif ctx.args[0] in (
+        "rx!mania",
+        "ap!taiko",
+        "ap!catch",
+        "ap!mania",
+    ):
+        return "Impossible gamemode combination."
+    else:
+        mode = GULAG_2_INT_DEFAULT[ctx.args[0]]
+
+    # Fetch user info from sql
+    pp = await app.state.services.database.fetch_one(
+        "SELECT pp FROM stats WHERE id = :user_id AND mode = :mode",
+        {"user_id": ctx.player.id, 'mode': mode},
+    )
+    if pp[0] < 1:
+        return "You have no pp in this gamemode, go play something."
+
+    # Make API request to osu!daily
+    r = await app.state.services.http.get(
+        url="https://osudaily.net/api/pp.php",
+        params={
+            'k': str(app.settings.OSUDAILY_API_KEY),
+            't': 'pp',
+            'v': pp[0],
+            "m": mode
+    })
+    data = json.loads(await r.text())
+    return f"Your rank on bancho in osu!{GULAG_2_STR_DEFUALT[ctx.args[0]].capitalize()} would be around {data['rank']:,}"
+
+@command(Privileges.DEVELOPER)
+async def _free_pp_everywhere_you_go(ctx: Context) -> Optional[str]:
+    """Free pp everywhere you go."""
+    # Get 1st and 2nd argument
+    if len(ctx.args) < 2:
+        return "2 args"
+    else:
+        mode = int(ctx.args[0])
+        pp = int(ctx.args[1])
+
+    await app.state.services.database.execute(
+        "UPDATE stats SET pp = :pp WHERE id = :id AND mode = :mode",
+        {"pp": pp, "id": ctx.player.id, "mode": mode},
+    )
+    return "Free pp awarded."
 
 """ Nominator commands
 # The commands below allow users to

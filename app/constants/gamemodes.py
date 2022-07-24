@@ -28,7 +28,35 @@ GAMEMODE_REPR_LIST = (
     "ap!mania",  # unused
 )
 
+GULAG_2_INT_DEFAULT = {
+    "vn!std": 0,
+    "vn!taiko": 1,
+    "vn!catch": 2,
+    "vn!mania": 3,
+    "rx!std": 0,
+    "rx!taiko": 1,
+    "rx!catch": 2,
+    "rx!mania": 3,
+    "ap!std": 0,
+    "ap!taiko": 1,
+    "ap!catch": 2,
+    "ap!mania": 3,
+}
 
+GULAG_2_STR_DEFUALT = {
+    "vn!std": "std",
+    "vn!taiko": "taiko",
+    "vn!catch": "catch",
+    "vn!mania": "mania",
+    "rx!std": "std",
+    "rx!taiko": "taiko",
+    "rx!catch": "catch",
+    "rx!mania": "mania",
+    "ap!std": "std",
+    "ap!taiko": "taiko",
+    "ap!catch": "catch",
+    "ap!mania": "mania",
+}
 @unique
 @pymysql_encode(escape_enum)
 class GameMode(IntEnum):

@@ -14,6 +14,7 @@ DB_DSN = config("DB_DSN", cast=DatabaseURL)
 REDIS_DSN = config("REDIS_DSN")
 
 OSU_API_KEY = config("OSU_API_KEY", cast=Secret)
+OSUDAILY_API_KEY = config("OSUDAILY_API_KEY", cast=Secret)
 
 DOMAIN = config("DOMAIN")
 MIRROR_URL = config("MIRROR_URL")
